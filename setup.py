@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="Airbnb",
+    name="Airbnb-Processing",
     version="0.0.1",
     author="Paul Ozkohen",
     author_email="author@example.com",
@@ -12,7 +12,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/paulozk/Airbnb/tree/master",
-    packages=setuptools.find_packages(),
+    packages=['cleaning'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
@@ -20,3 +20,4 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
 )
+

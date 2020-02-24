@@ -4,7 +4,7 @@ This repository contains tools for exploring and processing Airbnb data gathered
   * Usage:
   ```python
   from cleaning.data_cleaning import clean_dataset
-  clean_dataset(PATH_TO_DATA, PATH_TO_STORE_CLEANED_DATA)
+  clean_dataset(PATH_TO_DATA, DESTINATION_PATH)
   ```
 
 * Visualization: Visualize insights into the data (per district) and offer this via an interactive dashboard (Flask + Dash)

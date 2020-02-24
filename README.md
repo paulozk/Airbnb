@@ -10,3 +10,7 @@ This repository contains tools for exploring and processing Airbnb data gathered
 * Visualization: Visualize insights into the data (per district) and offer this via an interactive dashboard (Flask + Dash)
 * Data Preprocessing: Transforming the data to make it machine-readable, so that it can be fed to a machine learning model
 
+# Installation
+```cmd
+pip install -i https://test.pypi.org/simple/ Airbnb_Processing==0.0.1
+```

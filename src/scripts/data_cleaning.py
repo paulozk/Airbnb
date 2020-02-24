@@ -23,6 +23,14 @@ def get_duplicate_rows(data):
     # rows_to_drop = data.index[rows_to_drop]
     return data.drop(rows_to_drop, axis=0)
 
+# given columns containing a list of values, convert this column to multiple binary columns; one for each possible
+# value
+# example:
+# original column -
+# [a, b, c, d, e]
+# [e, f]
+# new -
+# [0-1] [0-1] [0-1] [0-1] [0-1] [0-1]
 def expand_columns(data):
     data = data.reset_index(drop=True)
     columns = ['host_verifications', 'amenities']
@@ -69,6 +77,7 @@ def expand_columns(data):
 
     return data
 
+# Drop rows that do not contain certain jurisdiction names
 def filter_on_jurisdiction():
     keep_list = ['{Amsterdam," NL"}',
                  '{Amsterdam," NL Zip Codes 2"," Amsterdam"," NL"}',
@@ -79,14 +88,14 @@ def filter_on_jurisdiction():
     func = {'jurisdiction_names': lambda x: x not in keep_list}
     return pdp.RowDrop(func)
 
-
-
+# uniformize missing values by replacing them by NaNs
 def uniformize_missing(columns):
     missing_values_strings = ['NaN', '??', '*', 'UNK', '-', '###']
     func = lambda x: np.nan if x in missing_values_strings else x
 
     return pdp.ApplyByCols(columns, func)
 
+# uniformize boolean values by replacing them by 1 (True) or 0 (False)
 def uniformize_boolean(columns):
     true_strings = ['t', 'true', 'yes', 'y', True]
     false_strings = ['f', 'false', 'n', 'no', False]
@@ -112,25 +121,27 @@ def unify_datetimes(data):
         data[column_name] = pd.concat([dates_timestamp, dates_normal])
     return data
 
+# convert monetary values to float by stripping the '$' and casting to numeric value
 def uniformize_monetary():
-    # 6: convert monetary values to float by stripping the '$' and casting to numeric value
     monetary_columns = ['price', 'weekly_price', 'monthly_price', 'security_deposit', 'cleaning_fee', 'extra_people']
 
     func = lambda x: float(x[1:].replace(',', '')) if type(x) == str else x
 
     return pdp.ApplyByCols(monetary_columns, func)
 
+# convert percentage values to float by stripping the '%' and casting to numeric value
 def uniformize_percentage():
     percentage_columns = ['host_response_rate']
 
     func = lambda x: float(x[:-1]) if type(x) == str else x
     return pdp.ApplyByCols(percentage_columns, func)
 
+# drop columns that only contain either 1 possible values or NaNs
 def drop_useless():
     useless_column = ['experiences_offered', 'has_availability', 'requires_license', 'is_business_travel_ready']
     return pdp.ColDrop(useless_column)
 
-
+# build the data cleaning pipeline and return the built pipeline object
 def build_pipeline(column_names):
     print("Now building pipeline...")
     n_steps = 9

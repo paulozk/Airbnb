@@ -4,14 +4,14 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="Airbnb-Paulozk", # Replace with your own username
+    name="Airbnb",
     version="0.0.1",
     author="Paul Ozkohen",
     author_email="author@example.com",
     description="A small example package",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/paulozk/Airbnb/tree/master/src/scripts",
+    url="https://github.com/paulozk/Airbnb/tree/master",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

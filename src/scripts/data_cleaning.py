@@ -169,3 +169,15 @@ def build_pipeline(column_names):
     print("Step {0} of {1} complete!".format(9, n_steps))
 
     return pipeline
+
+# clean the dataset located at path_in and store the cleaned data at location path_out
+def clean_dataset(path_in, path_out):
+    # read in the data from path_in
+    data = pd.read_csv(path_in)
+    # build the data cleaning pipeline
+    pipeline = build_pipeline(data.columns)
+    print("Cleaning data with pipeline..")
+    # clean data with pipeline
+    data_cleaned = pipeline.apply(data, verbose=True)
+    # store the data to path_out
+    data_cleaned.to_csv(path_out)

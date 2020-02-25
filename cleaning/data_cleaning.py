@@ -181,3 +181,16 @@ def clean_dataset(path_in, path_out):
     data_cleaned = pipeline.apply(data, verbose=True)
     # store the data to path_out
     data_cleaned.to_csv(path_out)
+
+def clean_dataset_json(df_json):
+    # read in the data from path_in
+    data = pd.read_json(df_json)
+    # build the data cleaning pipeline
+    pipeline = build_pipeline(data.columns)
+    print("Cleaning data with pipeline..")
+    # clean data with pipeline
+    data_cleaned = pipeline.apply(data, verbose=True)
+    # return jsonified version of cleaned dataset
+    data_cleaned_json = data_cleaned.to_json()
+
+    return data_cleaned_json

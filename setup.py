@@ -4,8 +4,8 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="Airbnb-Processing",
-    version="0.0.1",
+    name="Airbnb",
+    version="0.0.2",
     author="Paul Ozkohen",
     author_email="author@example.com",
     description="A small example package",

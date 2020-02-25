@@ -9,9 +9,13 @@ This repository contains tools for exploring and processing Airbnb data gathered
      ```
     * Flask:
     1. Navigate to cleaning_api folder
-    2. 
+    2.
     ```python
-    requests.get("http://localhost:5000/v1/methods/cleaning", json=YOUR_DATASET_AS_JSON)
+    flask run
+    ```
+    3. 
+    ```python
+    requests.get("http://localhost:YOUR_PORT/v1/methods/cleaning", json=YOUR_DATASET_AS_JSON)
     ```
     The response will contain the JSON version of the cleaned dataset
   

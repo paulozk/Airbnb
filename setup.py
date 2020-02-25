@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="Airbnb",
-    version="0.0.1",
+    version="0.0.2",
     author="Paul Ozkohen",
     author_email="author@example.com",
     description="A small example package",

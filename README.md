@@ -3,10 +3,10 @@ This repository contains tools for exploring and processing Airbnb data gathered
 * Data Cleaning: Dealing with inconsistencies in the data, such as non-uniform markers for missing values
   * Usage:
     * Python:
-   ```python
-    from cleaning.data_cleaning import clean_dataset
-    clean_dataset(PATH_TO_DATA, DESTINATION_PATH)
-    ```
+    ```python
+      from cleaning.data_cleaning import clean_dataset
+      clean_dataset(PATH_TO_DATA, DESTINATION_PATH)
+     ```
     * Flask:
   
 

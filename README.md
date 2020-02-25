@@ -9,6 +9,7 @@ This repository contains tools for exploring and processing Airbnb data gathered
      ```
     * Flask:
     1: Navigate to cleaning_api folder
+    
     2:
     ```python
     flask run

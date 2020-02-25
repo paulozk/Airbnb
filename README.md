@@ -13,7 +13,7 @@ This repository contains tools for exploring and processing Airbnb data gathered
     ```python
     requests.get("http://localhost:5000/v1/methods/cleaning", json=YOUR_DATASET_AS_JSON)
     ```
-    3. The response will contain the Json version of the cleaned dataset
+    The response will contain the JSON version of the cleaned dataset
   
 
 * Visualization: Visualize insights into the data (per district) and offer this via an interactive dashboard (Flask + Dash)

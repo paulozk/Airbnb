@@ -3,6 +3,60 @@ import pdpipe as pdp
 import numpy as np
 import sys
 import time
+import geopandas as gpd
+
+# define a custom adhocstage subclass that allows for easy argument passing to transform function
+class AdHogStageArg(pdp.AdHocStage):
+    """An ad-hoc stage of a pandas DataFrame-processing pipeline.
+
+    Parameters
+    ----------
+    transform : callable
+        The transformation this stage applies to dataframes.
+    prec : callable, default None
+        A callable that returns a boolean value. Represent a a precondition
+        used to determine whether this stage can be applied to a given
+        dataframe. If None is given, set to a function always returning True.
+    """
+
+    def __init__(self, transform, prec=None, **kwargs):
+        if prec is None:
+            prec = True
+        self._adhoc_transform = transform
+        self._adhoc_prec = prec
+        super().__init__(transform)
+
+        self.kwargs = kwargs
+
+    def _prec(self, df):
+        return self._adhoc_prec
+
+    def _transform(self, df, verbose):
+        try:
+            return self._adhoc_transform(df, **self.kwargs)
+        except TypeError:
+            return self._adhoc_transform(df)
+
+
+def add_neighbourhood(data, **kwargs):
+    start_time = time.time()
+
+    # append column to data with its geometry
+    data['geometry'] = gpd.points_from_xy(data.longitude.astype(float), data.latitude.astype(float))
+    data['neighbourhood'] = np.empty(len(data), dtype='str')
+    n_adam = 0
+
+    for i, neighbourhood in enumerate(kwargs['geo_data'].neighbourhood):
+        # get the indices of points belonging to neighborhood i
+        idx = np.where(data['geometry'].map(lambda x: x.within(kwargs['geo_data'].geometry[i])))
+        n_adam += len(idx[0])
+        data['neighbourhood'].iloc[idx] = neighbourhood
+
+    time_elapsed = time.time() - start_time
+    print("add_neighbourhood:", time_elapsed)
+
+    return data
+
 
 # define a function that, given some columns of the dataframe, drops rows of duplicates
 # SLOW!
@@ -111,6 +165,18 @@ def filter_on_jurisdiction():
 
     return result
 
+def filter_on_neighbourhood():
+    start_time = time.time()
+
+    # drop rows with empty neighbourhood -> not in Amsterdam!
+    func = {'neighbourhood': lambda x: x == ''}
+    result = pdp.RowDrop(func)
+
+    time_elapsed = time.time() - start_time
+    print("filter_on_neighbourhood:", time_elapsed)
+
+    return result
+
 # uniformize missing values by replacing them by NaNs
 def uniformize_missing(columns):
     start_time = time.time()
@@ -205,7 +271,7 @@ def drop_useless():
     return result
 
 # build the data cleaning pipeline and return the built pipeline object
-def build_pipeline(column_names):
+def build_pipeline(column_names, data_geo):
     print("Now building pipeline...")
     # initialize the pipeline
     pipeline = filter_on_jurisdiction()
@@ -213,23 +279,34 @@ def build_pipeline(column_names):
     pipeline += pdp.AdHocStage(transform=get_duplicate_rows)
     # uniformize missing values
     pipeline += uniformize_missing(column_names)
+    # add neighbourhood of data points based on latitude and longitude
+    kwargs = {'geo_data': data_geo}
+    pipeline += AdHogStageArg(transform=add_neighbourhood, **kwargs)
+    # drop rows that do not belong to Amsterdam, according to lat lon
+    pipeline += filter_on_neighbourhood()
     # uniformize boolean values
     pipeline += uniformize_boolean(column_names)
+    # uniformize datetimes
     pipeline += pdp.AdHocStage(transform=unify_datetimes)
+    # uniformize monetary values and convert to numeric
     pipeline += uniformize_monetary()
+    # uniformize percentage values and convert to numeric
     pipeline += uniformize_percentage()
+    # add new boolean columns for values within certain columns
     pipeline += pdp.AdHocStage(transform=expand_columns)
+    # drop columns that contain no useful information
     pipeline += drop_useless()
 
     return pipeline
 
 # clean the dataset located at path_in and store the cleaned data at location path_out
-def clean_dataset(path_in, path_out):
+def clean_dataset(path_in, path_out, json_path):
     # read in the data from path_in
     data = pd.read_csv(path_in)
     print("Starting data shape:", data.shape)
+    data_geo = gpd.read_file(json_path)
     # build the data cleaning pipeline
-    pipeline = build_pipeline(data.columns)
+    pipeline = build_pipeline(data.columns, data_geo)
     print("Cleaning data with pipeline..")
     # clean data with pipeline
     data_cleaned = pipeline.apply(data, verbose=False)
@@ -253,9 +330,9 @@ def clean_dataset_json(df_json):
 
 if(__name__ == '__main__'):
     try:
-        _, path_in, path_out = sys.argv
+        _, path_in, path_out, path_json = sys.argv
     except:
         print("Please supply input and output path!")
         sys.exit()
 
-    clean_dataset(path_in, path_out)
+    clean_dataset(path_in, path_out, path_json)

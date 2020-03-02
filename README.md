@@ -27,5 +27,5 @@ This repository contains tools for exploring and processing Airbnb data gathered
 
 # Installation
 ```cmd
-pip install -i https://test.pypi.org/simple/ Airbnb_Processing==0.0.3
+pip install -i https://test.pypi.org/simple/ Airbnb==0.0.3
 ```

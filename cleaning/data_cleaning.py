@@ -1,9 +1,14 @@
 import pandas as pd
 import pdpipe as pdp
 import numpy as np
+import sys
+import time
 
 # define a function that, given some columns of the dataframe, drops rows of duplicates
+# SLOW!
 def get_duplicate_rows(data):
+    start_time = time.time()
+
     data = data.reset_index(drop=True)
     column_names = ['id', 'listing_url']
     rows_to_drop = np.zeros(0, dtype=int)
@@ -21,7 +26,12 @@ def get_duplicate_rows(data):
             rows_to_drop = np.concatenate([rows_to_drop, index_duplicates[1:]])
 
     # rows_to_drop = data.index[rows_to_drop]
-    return data.drop(rows_to_drop, axis=0)
+    result = data.drop(rows_to_drop, axis=0)
+
+    time_elapsed = time.time() - start_time
+    print("get_duplicate_rows:", time_elapsed)
+
+    return result
 
 # given columns containing a list of values, convert this column to multiple binary columns; one for each possible
 # value
@@ -31,7 +41,10 @@ def get_duplicate_rows(data):
 # [e, f]
 # new -
 # [0-1] [0-1] [0-1] [0-1] [0-1] [0-1]
+# VERY SLOW!
 def expand_columns(data):
+    start_time = time.time()
+
     data = data.reset_index(drop=True)
     columns = ['host_verifications', 'amenities']
     for col in columns:
@@ -75,10 +88,15 @@ def expand_columns(data):
         # drop source column
         data = data.drop(col, axis=1)
 
+    time_elapsed = time.time() - start_time
+    print("expand_columns:", time_elapsed)
+
     return data
 
 # Drop rows that do not contain certain jurisdiction names
 def filter_on_jurisdiction():
+    start_time = time.time()
+
     keep_list = ['{Amsterdam," NL"}',
                  '{Amsterdam," NL Zip Codes 2"," Amsterdam"," NL"}',
                  '{Amsterdam}',
@@ -86,27 +104,45 @@ def filter_on_jurisdiction():
                  np.nan]
 
     func = {'jurisdiction_names': lambda x: x not in keep_list}
-    return pdp.RowDrop(func)
+    result = pdp.RowDrop(func)
+
+    time_elapsed = time.time() - start_time
+    print("Filter_on_jurisdiction:", time_elapsed)
+
+    return result
 
 # uniformize missing values by replacing them by NaNs
 def uniformize_missing(columns):
+    start_time = time.time()
     missing_values_strings = ['NaN', '??', '*', 'UNK', '-', '###']
     func = lambda x: np.nan if x in missing_values_strings else x
 
-    return pdp.ApplyByCols(columns, func)
+    time_elapsed = time.time() - start_time
+    result = pdp.ApplyByCols(columns, func)
+    print("uniformize_missing:", time_elapsed)
+
+    return result
 
 # uniformize boolean values by replacing them by 1 (True) or 0 (False)
 def uniformize_boolean(columns):
+    start_time = time.time()
     true_strings = ['t', 'true', 'yes', 'y', True]
     false_strings = ['f', 'false', 'n', 'no', False]
 
     func_true = lambda x: 1.0 if x in true_strings else x
     func_false = lambda x: 0.0 if x in false_strings else x
 
-    return pdp.ApplyByCols(columns, func_true) + pdp.ApplyByCols(columns, func_false)
+    result = pdp.ApplyByCols(columns, func_true) + pdp.ApplyByCols(columns, func_false)
+
+    time_elapsed = time.time() - start_time
+    print("uniformize_boolean:", time_elapsed)
+
+    return result
 
 # define a function that unifies the data formats into one format
 def unify_datetimes(data):
+    start_time = time.time()
+
     column_names = ['host_since', 'first_review', 'last_review']
     for column_name in column_names:
         # identify rows with unix timestamps
@@ -119,54 +155,71 @@ def unify_datetimes(data):
 
         # join both date columns together and return
         data[column_name] = pd.concat([dates_timestamp, dates_normal])
+
+    time_elapsed = time.time() - start_time
+    print("unify_datetimes:", time_elapsed)
+
     return data
 
 # convert monetary values to float by stripping the '$' and casting to numeric value
 def uniformize_monetary():
+    start_time = time.time()
+
     monetary_columns = ['price', 'weekly_price', 'monthly_price', 'security_deposit', 'cleaning_fee', 'extra_people']
 
     func = lambda x: float(x[1:].replace(',', '')) if type(x) == str else x
 
-    return pdp.ApplyByCols(monetary_columns, func)
+    result = pdp.ApplyByCols(monetary_columns, func)
+
+    time_elapsed = time.time() - start_time
+    print("uniformize_monetary:", time_elapsed)
+
+    return result
 
 # convert percentage values to float by stripping the '%' and casting to numeric value
 def uniformize_percentage():
+    start_time = time.time()
+
     percentage_columns = ['host_response_rate']
 
     func = lambda x: float(x[:-1]) if type(x) == str else x
-    return pdp.ApplyByCols(percentage_columns, func)
+
+    result = pdp.ApplyByCols(percentage_columns, func)
+
+    time_elapsed = time.time() - start_time
+    print("uniformize_percentage:", time_elapsed)
+
+    return result
 
 # drop columns that only contain either 1 possible values or NaNs
 def drop_useless():
+    start_time = time.time()
+
     useless_column = ['experiences_offered', 'has_availability', 'requires_license', 'is_business_travel_ready']
-    return pdp.ColDrop(useless_column)
+
+    result = pdp.ColDrop(useless_column)
+
+    time_elapsed = time.time() - start_time
+    print("drop_useless:", time_elapsed)
+
+    return result
 
 # build the data cleaning pipeline and return the built pipeline object
 def build_pipeline(column_names):
     print("Now building pipeline...")
-    n_steps = 9
     # initialize the pipeline
     pipeline = filter_on_jurisdiction()
-    print("Step {0} of {1} complete!".format(1, n_steps))
     # get rid of duplicates
     pipeline += pdp.AdHocStage(transform=get_duplicate_rows)
-    print("Step {0} of {1} complete!".format(2, n_steps))
     # uniformize missing values
     pipeline += uniformize_missing(column_names)
-    print("Step {0} of {1} complete!".format(3, n_steps))
     # uniformize boolean values
     pipeline += uniformize_boolean(column_names)
-    print("Step {0} of {1} complete!".format(4, n_steps))
     pipeline += pdp.AdHocStage(transform=unify_datetimes)
-    print("Step {0} of {1} complete!".format(5, n_steps))
     pipeline += uniformize_monetary()
-    print("Step {0} of {1} complete!".format(6, n_steps))
     pipeline += uniformize_percentage()
-    print("Step {0} of {1} complete!".format(7, n_steps))
     pipeline += pdp.AdHocStage(transform=expand_columns)
-    print("Step {0} of {1} complete!".format(8, n_steps))
     pipeline += drop_useless()
-    print("Step {0} of {1} complete!".format(9, n_steps))
 
     return pipeline
 
@@ -174,11 +227,13 @@ def build_pipeline(column_names):
 def clean_dataset(path_in, path_out):
     # read in the data from path_in
     data = pd.read_csv(path_in)
+    print("Starting data shape:", data.shape)
     # build the data cleaning pipeline
     pipeline = build_pipeline(data.columns)
     print("Cleaning data with pipeline..")
     # clean data with pipeline
-    data_cleaned = pipeline.apply(data, verbose=True)
+    data_cleaned = pipeline.apply(data, verbose=False)
+    print("Cleaned data shape:", data_cleaned.shape)
     # store the data to path_out
     data_cleaned.to_csv(path_out)
 
@@ -189,8 +244,18 @@ def clean_dataset_json(df_json):
     pipeline = build_pipeline(data.columns)
     print("Cleaning data with pipeline..")
     # clean data with pipeline
-    data_cleaned = pipeline.apply(data, verbose=True)
+    data_cleaned = pipeline.apply(data, verbose=False)
     # return jsonified version of cleaned dataset
     data_cleaned_json = data_cleaned.to_json()
 
     return data_cleaned_json
+
+
+if(__name__ == '__main__'):
+    try:
+        _, path_in, path_out = sys.argv
+    except:
+        print("Please supply input and output path!")
+        sys.exit()
+
+    clean_dataset(path_in, path_out)

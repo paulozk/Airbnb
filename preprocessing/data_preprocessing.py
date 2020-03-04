@@ -50,6 +50,16 @@ def drop_textual_columns():
 
     return result
 
+def drop_host_location():
+    start_time = time.time()
+
+    result = pdp.ColDrop('host_location')
+
+    time_elapsed = time.time() - start_time
+    print("drop_textual_columns:", time_elapsed)
+
+    return result
+
 def drop_geometrical_columns():
     start_time = time.time()
 
@@ -304,6 +314,8 @@ def build_pipeline(columns):
     print("Now building pipeline...")
     # initialize the pipeline by dropping textual columns
     pipeline = drop_textual_columns()
+    # drop the host location column
+    pipeline += drop_host_location()
     # drop geometrical columns
     pipeline += drop_geometrical_columns()
     # drop useless 'amenities' and 'host_verifications' columns
@@ -321,8 +333,7 @@ def build_pipeline(columns):
     # convert column types to float
     pipeline += pdp.AdHocStage(transform=convert_all_to_numeric)
     # drop columns related to date/time
-    pipeline += drop_datetime_columns
-
+    pipeline += drop_datetime_columns()
     # set threshold for dropping columns; columns with proportion of MaNs > threshold will be dropped
     drop_threshold = 0.5
     kwargs = {'drop_threshold': drop_threshold}
@@ -345,7 +356,7 @@ def preprocess_dataset(path_in, path_out):
     data_preprocessed = pipeline.apply(data, verbose=False)
     print("preprocessed data shape:", data_preprocessed.shape)
     # store the data to path_out
-    data_preprocessed.to_csv(path_out)
+    data_preprocessed.to_csv(path_out, index=None)
 
 
 if(__name__ == '__main__'):

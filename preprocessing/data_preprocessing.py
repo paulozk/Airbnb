@@ -459,3 +459,5 @@ if(__name__ == '__main__'):
         sys.exit()
 
     preprocess_dataset(path_in, path_out, path_calendar)
+
+    

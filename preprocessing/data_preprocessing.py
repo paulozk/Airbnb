@@ -4,6 +4,7 @@ import numpy as np
 import sys
 import time
 from scipy.stats import mode
+from sklearn.decomposition import PCA
 
 # define a custom adhocstage subclass that allows for easy argument passing to transform function
 class AdHogStageArg(pdp.AdHocStage):
@@ -302,6 +303,8 @@ def mean_impute(data):
 
 # mode impute the amenities and verifications binary columns
 def mode_impute(data):
+    start_time = time.time()
+
     amenities_and_verifications_columns = list(
         filter(lambda x: ("amenities" in x) or ("host_verifications" in x), data.columns))
     for col in amenities_and_verifications_columns:
@@ -309,8 +312,84 @@ def mode_impute(data):
             idx_missing = data[col].isnull()
             data[col][idx_missing] = mode(data[col].dropna())[0][0]
 
+    time_elapsed = time.time() - start_time
+    print("mode_impute:", time_elapsed)
+
+    return data
+
+
+def pca_transform(data):
+    start_time = time.time()
+
+    pca = PCA()
+
+    # fit an pca object on the data
+    pca.fit(data.drop('id', axis=1))
+    # take first 10 principle components
+    data_listings_pca = pd.DataFrame(pca.transform(data.drop('id', axis=1))[:, :10])
+    # add 'id' column to pca version of listings data
+    data_listings_pca = pd.concat([data_listings_pca, data['id']], axis=1)
+
+    time_elapsed = time.time() - start_time
+    print("pca_transform:", time_elapsed)
+
+    return data_listings_pca
+
+def drop_missing_ids(data):
+    start_time = time.time()
+
+    idx_missing = np.where(data.id.isnull())[0]
+    data = data.drop(idx_missing, axis=0)
+
+    time_elapsed = time.time() - start_time
+    print("drop_missing_ids:", time_elapsed)
+
+    return data
+
+
+def preprocess_calendar_data(data):
+    data = data.rename(columns={'listing_id': 'id'})
+    # drop date column
+    data = data.drop('date', axis=1)
+    # convert boolean (f-t) to 0s and 1s
+    data['available'][data['available'] == 'f'] = 0
+    data['available'][data['available'] == 't'] = 1
+    # convert monetary columns to numeric
+    #data['price'] = data['price'].map(lambda x: x[1:]
+    data['price'] = data['price'].str.replace('$', '')
+    data['price'] = data['price'].str.replace(',', '')
+    #data['adjusted_price'] = data['adjusted_price'].map(lambda x: x[1:])
+    data['adjusted_price'] = data['adjusted_price'].str.replace('$', '')
+    data['adjusted_price'] = data['adjusted_price'].str.replace(',', '')
+
+    # convert to numeric
+    data = data.astype(float)
+
+    print(data.head())
+
+    return data
+
+def merge_with_calendar(data, **kwargs):
+    idx_missing = np.where(data.id.isnull())[0]
+    data = data.drop(idx_missing, axis=0)
+
+    data_calendar = kwargs['data_calendar']
+
+    # preprocess the calendar data
+    data_calendar = preprocess_calendar_data(data_calendar)
+
+    # merge the two datasets on the 'id' column
+    data_listings_and_calendar = data_calendar.merge(data, on='id')
+
+    return data_listings_and_calendar
+
+
+
 # build the data preprocessing pipeline and return the built pipeline object
-def build_pipeline(columns):
+def build_pipeline(data_calendar):
+
+    # PREPROCESSING STAGES
+
     print("Now building pipeline...")
     # initialize the pipeline by dropping textual columns
     pipeline = drop_textual_columns()
@@ -338,19 +417,32 @@ def build_pipeline(columns):
     drop_threshold = 0.5
     kwargs = {'drop_threshold': drop_threshold}
     pipeline += AdHogStageArg(transform=drop_columns_with_many_NaNs, **kwargs)
-    # mean impute remaining continuous columhns
+    # mean impute remaining continuous columns
     pipeline += pdp.AdHocStage(transform=mean_impute)
+    # mode impute remaining binary columns
+    pipeline += pdp.AdHocStage(transform=mode_impute)
+
+    # MERGE STAGES
+
+    # pca transform the data
+    pipeline += pdp.AdHocStage(transform=pca_transform)
+    # drop rows with missing IDs
+    pipeline += pdp.AdHocStage(transform=drop_missing_ids)
+    # merge data with calendar data
+    kwargs = {'data_calendar': data_calendar}
+    pipeline += AdHogStageArg(transform=merge_with_calendar, **kwargs)
 
     return pipeline
 
 
 # clean the dataset located at path_in and store the cleaned data at location path_out
-def preprocess_dataset(path_in, path_out):
+def preprocess_dataset(path_in, path_out, path_calendar):
     # read in the data from path_in
     data = pd.read_csv(path_in)
     print("Starting data shape:", data.shape)
+    data_calendar = pd.read_csv(path_calendar)
     # build the data cleaning pipeline
-    pipeline = build_pipeline(data.columns)
+    pipeline = build_pipeline(data_calendar)
     print("Cleaning data with pipeline..")
     # clean data with pipeline
     data_preprocessed = pipeline.apply(data, verbose=False)
@@ -361,9 +453,9 @@ def preprocess_dataset(path_in, path_out):
 
 if(__name__ == '__main__'):
     try:
-        _, path_in, path_out = sys.argv
+        _, path_in, path_out, path_calendar = sys.argv
     except:
         print("Please supply input and output path!")
         sys.exit()
 
-    preprocess_dataset(path_in, path_out)
+    preprocess_dataset(path_in, path_out, path_calendar)

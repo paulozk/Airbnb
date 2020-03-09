@@ -27,7 +27,7 @@ def clean_dataset():
             cleaned_dataset = clean_dataset_csv(data, data_geo)
 
             # return clean dataset .csv file to requester
-            response = make_response(cleaned_dataset.to_csv())
+            response = make_response(cleaned_dataset.iloc[:10].to_csv())
             response.headers["Content-Disposition"] = "attachment; filename=cleaned_data.csv"
             response.headers["Content-Type"] = "text/csv"
 

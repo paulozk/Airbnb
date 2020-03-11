@@ -5,14 +5,14 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="Airbnb",
-    version="0.0.9",
+    version="1.0.6",
     author="Paul Ozkohen",
     author_email="author@example.com",
     description="A small example package",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/paulozk/Airbnb/tree/master",
-    packages=['cleaning'],
+    packages=['cleaning', 'preprocessing'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

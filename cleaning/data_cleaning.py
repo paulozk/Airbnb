@@ -327,6 +327,19 @@ def clean_dataset_json(df_json):
 
     return data_cleaned_json
 
+def clean_dataset_csv(data, data_geo):
+    # build the data cleaning pipeline
+    pipeline = build_pipeline(column_names=data.columns, data_geo=data_geo)
+    print("Cleaning data with pipeline..")
+    # clean data with pipeline
+    data_cleaned = pipeline.apply(data, verbose=False)
+    # return jsonified version of cleaned dataset
+    #data_cleaned_json = data_cleaned.to_json()
+
+    return data_cleaned
+
+
+
 
 if(__name__ == '__main__'):
     try:

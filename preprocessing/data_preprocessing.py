@@ -73,6 +73,20 @@ def drop_geometrical_columns():
 
     return result
 
+def drop_calendar_updated():
+    start_time = time.time()
+
+    column_name = ['calendar_updated']
+
+    result = pdp.ColDrop(column_name)
+
+    time_elapsed = time.time() - start_time
+    print("drop_calendar_updated:", time_elapsed)
+
+    return result
+
+
+
 def filter_verifications_and_amenities(data):
     start_time = time.time()
 
@@ -293,6 +307,8 @@ def mean_impute(data):
 
     for col in numerical_columns:
         if (col in data.columns and data[col].isnull().sum() > 0):
+            # convert column to numeric, just to be sure
+            data[col] = data[col].astype(float)
             idx_missing = data[col].isnull()
             data[col][idx_missing] = data[col].dropna().mean()
 
@@ -378,6 +394,9 @@ def merge_with_calendar(data, **kwargs):
     # preprocess the calendar data
     data_calendar = preprocess_calendar_data(data_calendar)
 
+    # convert listing 'id' column to float
+    data['id'] = data['id'].astype(float)
+
     # merge the two datasets on the 'id' column
     data_listings_and_calendar = data_calendar.merge(data, on='id')
 
@@ -400,7 +419,9 @@ def build_pipeline(data_calendar):
     # drop useless 'amenities' and 'host_verifications' columns
     pipeline += pdp.AdHocStage(transform=filter_verifications_and_amenities)
     # convert the column 'calender_updated' from string to numeric
-    pipeline += pdp.AdHocStage(transform=convert_calender_updated_to_numeric)
+    print("Skip calendar step!")
+    pipeline += drop_calendar_updated()
+    #pipeline += pdp.AdHocStage(transform=convert_calender_updated_to_numeric)
     # drop bed_type and property_type columns
     pipeline += pdp.AdHocStage(transform=drop_bed_and_property_type_columns)
     # encode 'host_response_time' as an ordinal variable (0-4)
@@ -449,6 +470,19 @@ def preprocess_dataset(path_in, path_out, path_calendar):
     print("preprocessed data shape:", data_preprocessed.shape)
     # store the data to path_out
     data_preprocessed.to_csv(path_out, index=None)
+
+def preprocess_dataset_csv(data_listings, data_calendar):
+    # build the data cleaning pipeline
+    pipeline = build_pipeline(data_calendar)
+    print("Cleaning data with pipeline..")
+    # clean data with pipeline
+    data_preprocessed = pipeline.apply(data_listings, verbose=False)
+    print("preprocessed data shape:", data_preprocessed.shape)
+
+    return data_preprocessed
+
+
+
 
 
 if(__name__ == '__main__'):

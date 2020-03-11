@@ -1,0 +1,8 @@
+Flask==0.10.1
+Airbnb==1.0.6
+pandas
+pdpipe
+numpy
+scipy
+scikit-learn
+geopandas

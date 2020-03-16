@@ -1,0 +1,8 @@
+flask
+numpy
+pandas
+pdpipe
+geopandas
+scipy
+sklearn
+nltk
